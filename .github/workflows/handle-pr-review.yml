@@ -1,0 +1,40 @@
+name: Handle PR Review
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  implement-review:
+    if: github.event.review.state == 'changes_requested'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Changes have been requested on pull request #${{ github.event.pull_request.number }}.
+
+            PR title: ${{ github.event.pull_request.title }}
+            PR branch: ${{ github.event.pull_request.head.ref }}
+
+            Reviewer: ${{ github.event.review.user.login }}
+            Review summary:
+            ${{ github.event.review.body }}
+
+            Instructions:
+            1. Use `gh pr view ${{ github.event.pull_request.number }} --comments` and
+               `gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/comments`
+               to read all inline review comments in full
+            2. Implement every requested change, addressing both the review summary above and
+               all inline comments on individual lines
+            3. Push your changes to the PR branch (${{ github.event.pull_request.head.ref }})
+          claude_args: --max-turns 10

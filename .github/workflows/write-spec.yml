@@ -1,0 +1,62 @@
+name: Write Spec from Issue
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  write-spec:
+    if: github.event.label.name == 'needs spec'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create MCP config
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        run: |
+          python3 -c "
+          import json, os
+          config = {
+            'mcpServers': {
+              'linear': {
+                'command': 'npx',
+                'args': ['-y', 'linear-mcp-server'],
+                'env': {'LINEAR_API_KEY': os.environ['LINEAR_API_KEY']}
+              }
+            }
+          }
+          with open('/tmp/mcp-config.json', 'w') as f:
+            json.dump(config, f)
+          "
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            GitHub issue #${{ github.event.issue.number }} needs a proper technical specification written.
+
+            Issue title: ${{ github.event.issue.title }}
+
+            Current issue body:
+            ${{ github.event.issue.body }}
+
+            Instructions:
+            1. Read the issue body above. It contains a brief description and typically a link to a Linear ticket.
+            2. Use the Linear MCP server to fetch the linked Linear issue and understand the full problem context and motivation.
+            3. Explore the repository codebase to understand the existing architecture, patterns, and conventions relevant to this feature.
+            4. Write a clear technical specification that includes:
+               - A concise summary of what needs to be implemented
+               - Detailed requirements and acceptance criteria
+               - Technical approach based on the existing codebase
+               - Any edge cases or open questions
+            5. Overwrite the issue body with the new specification:
+               gh issue edit ${{ github.event.issue.number }} --body "<new spec>"
+            6. Swap the labels:
+               gh issue edit ${{ github.event.issue.number }} --remove-label "needs spec" --add-label "needs human review"
+          claude_args: --max-turns 20 --mcp-config /tmp/mcp-config.json
