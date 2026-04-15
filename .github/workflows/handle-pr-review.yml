@@ -11,6 +11,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -18,8 +19,11 @@ jobs:
           fetch-depth: 0
 
       - uses: anthropics/claude-code-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          show_full_output: true
           prompt: |
             Changes have been requested on pull request #${{ github.event.pull_request.number }}.
 
@@ -37,4 +41,4 @@ jobs:
             2. Implement every requested change, addressing both the review summary above and
                all inline comments on individual lines
             3. Push your changes to the PR branch (${{ github.event.pull_request.head.ref }})
-          claude_args: --max-turns 10
+          claude_args: --max-turns 30 --allowedTools Bash,Write,Edit,Monitor,Skill,WebFetch,WebSearch

@@ -11,6 +11,7 @@ jobs:
     permissions:
       contents: read
       issues: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,8 +37,12 @@ jobs:
           "
 
       - uses: anthropics/claude-code-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          show_full_output: true
           prompt: |
             GitHub issue #${{ github.event.issue.number }} needs a proper technical specification written.
 
@@ -47,8 +52,8 @@ jobs:
             ${{ github.event.issue.body }}
 
             Instructions:
-            1. Read the issue body above. It contains a brief description and typically a link to a Linear ticket.
-            2. Use the Linear MCP server to fetch the linked Linear issue and understand the full problem context and motivation.
+            1. Read the issue body above. It contains a brief description and typically a link to a Linear issue.
+            2. If it has a linear issue, use the Linear MCP server to fetch the linked Linear issue and understand the full problem context and motivation.
             3. Explore the repository codebase to understand the existing architecture, patterns, and conventions relevant to this feature.
             4. Write a clear technical specification that includes:
                - A concise summary of what needs to be implemented
@@ -59,4 +64,4 @@ jobs:
                gh issue edit ${{ github.event.issue.number }} --body "<new spec>"
             6. Swap the labels:
                gh issue edit ${{ github.event.issue.number }} --remove-label "needs spec" --add-label "needs human review"
-          claude_args: --max-turns 20 --mcp-config /tmp/mcp-config.json
+          claude_args: --max-turns 30 --mcp-config /tmp/mcp-config.json --allowedTools Bash,Write,Edit,Skill,WebFetch,WebSearch

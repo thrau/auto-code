@@ -12,14 +12,18 @@ jobs:
       contents: write
       pull-requests: write
       issues: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - uses: anthropics/claude-code-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          show_full_output: true
           prompt: |
             Please implement GitHub issue #${{ github.event.issue.number }}.
 
@@ -33,4 +37,4 @@ jobs:
             2. Follow the existing code style and patterns in the repository
             3. Write appropriate tests if applicable
             4. Create a pull request with your changes that closes issue #${{ github.event.issue.number }}
-          claude_args: --max-turns 10
+          claude_args: --max-turns 30 --allowedTools Bash,Write,Edit,Monitor,Skill,WebFetch,WebSearch
